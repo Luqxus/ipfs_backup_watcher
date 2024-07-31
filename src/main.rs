@@ -1,7 +1,9 @@
 // use ferris_says::say;
 // use std;
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
-use std::path::Path;
+
+pub mod watcher;
+
+use watcher::{FsWatcher, Hasher};
 
 fn main() {
     let path = std::env::args()
@@ -10,24 +12,9 @@ fn main() {
 
     println!("watching {}", path);
 
-    if let Err(e) = watch(path) {
+    let w: FsWatcher = FsWatcher::new(watcher::Hasher {}, path);
+
+    if let Err(e) = w.watch() {
         println!("error: {:?}", e);
     }
-}
-
-fn watch<P: AsRef<Path>>(path: P) -> notify::Result<()> {
-    let (tx, rx) = std::sync::mpsc::channel();
-
-    let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
-
-    watcher.watch(path.as_ref(), RecursiveMode::Recursive)?;
-
-    for res in rx {
-        match res {
-            Ok(event) => println!("changed: {:?}", event.paths),
-            Err(e) => println!("watch error: {:?}", e),
-        }
-    }
-
-    Ok(())
 }
